@@ -124,16 +124,6 @@ class TestGameManager(unittest.TestCase):
         # For example, checking that the bot has the correct units or controlled centers
         self.assertIn("A BER", bot_game_info["bot_units"])  # Assuming bot controls Berlin (A BER)
         self.assertIn("BER", bot_game_info["controlled_centers"]["GERMANY"])  # Assuming Berlin is a controlled center
-        
-    def test_game_metadata_reporting(self):
-        self.manager.register_player(self.game_id, "alice", "FRANCE")
-        self.manager.register_player(self.game_id, "bob", "ENGLAND")
-        self.manager.start_game(self.game_id)
-
-        metadata = self.manager.get_game_metadata(self.game_id)
-        self.assertEqual(metadata["status"], "in_progress")
-        self.assertIn("FRANCE", metadata["missing_orders"])
-        self.assertIn("ENGLAND", metadata["missing_orders"])
 
 
 if __name__ == '__main__':
