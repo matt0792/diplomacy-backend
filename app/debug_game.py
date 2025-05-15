@@ -21,6 +21,8 @@ def print_menu():
     print("9. Get all possible orders")
     print("10. Get order status")
     print("11. Get power")
+    print("12. Get game state")
+    print("13. Render game")
     print("============================") 
     
 while True:
@@ -108,9 +110,11 @@ while True:
         print(f"Is Controlled: {power_object.is_controlled()}")
         
     elif choice == "12":
-        data = manager._get_game_data(game_id)
-        game = data["game"]
-        pp.pprint(game.get_public_game_state())
+        pp.pprint(manager.get_game_state(game_id))
+        
+    elif choice == "13":
+        manager.render_game(game_id)
+        print("Game rendered to 'app/renders'")
         
     
     else:

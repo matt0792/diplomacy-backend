@@ -79,7 +79,6 @@ class GameManager:
             
         game.process() #advance to first phase
         self._save_game_to_db(game_id) #stub 
-        return self.get_public_game_state(game_id)
         
     def submit_orders(self, game_id: str, player_id: str, orders: list):
         # validate that the game exists, and get data 
@@ -165,7 +164,6 @@ class GameManager:
         # check if the game is done after processing orders 
         if game.is_game_done:
             self._handle_game_end(game_id)
-        return self.get_public_game_state(game_id)
             
     def _handle_game_end(self, game_id: str):
         """
@@ -179,25 +177,18 @@ class GameManager:
     def get_game(self, game_id: str) -> Game:
         return self._get_game_data(game_id)["game"]
     
-    def get_public_game_state(self, game_id: str) -> dict:
-        """
-        Retrieves a simplified representation of the current map state.
-        """
-        game = self.get_game(game_id)
+    def get_game_state(self, game_id: str):
+        data = self._get_game_data(game_id)
+        game = data["game"]
         
-        # get the phase of the game 
-        phase = game.get_current_phase()
+        return game.get_state()
+    
+    def render_game(self, game_id: str):
+        data = self._get_game_data(game_id)
+        game = data["game"]
         
-        # get the powers and units
-        units = game.get_units()
-        centers = game.get_centers() # can be filteres by power if needed 
-        
-        return {
-            "phase": phase,
-            "units": units,
-            "centers": centers,          # Centers controlled by powers
-            "controlled_powers": game.get_controlled_power_names(""), # List all controlled powers
-        }
+        output_path = "/Users/matthewthompson/repos/diplomacy-backend/app/renders/render.svg"
+        game.render(incl_orders=True, incl_abbrev=False, output_format='svg', output_path=output_path)
         
     def _get_game_data(self, game_id: str):
         if game_id not in self.games: 
