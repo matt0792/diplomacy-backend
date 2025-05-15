@@ -11,6 +11,7 @@ pp = pprint.PrettyPrinter(indent=2, width=80, depth=5)
 def print_menu():
     print("\n=== Diplomacy Debug Menu ===")
     print("1. Create game")
+    print("1.5 Start game")
     print("2. Register player")
     print("3. Show current phase")
     print("4. Show units")
@@ -23,6 +24,7 @@ def print_menu():
     print("11. Get power")
     print("12. Get game state")
     print("13. Render game")
+    print("14. Save game")
     print("============================") 
     
 while True:
@@ -36,6 +38,8 @@ while True:
         data = manager._get_game_data(game_id)
         game = data["game"]
         
+    elif choice == "1.5":
+        manager.start_game(game_id)
         
         
     elif choice == "2":
@@ -115,6 +119,10 @@ while True:
     elif choice == "13":
         manager.render_game(game_id)
         print("Game rendered to 'app/renders'")
+        
+    elif choice == "14":
+        manager.save_game(game_id)
+        print("Game saved")
         
     
     else:

@@ -1,9 +1,8 @@
 # Wraps the Diplomacy game engine 
 
 import random 
+from datetime import datetime, timezone
 from diplomacy.engine.game import Game
-from diplomacy.engine.power import Power
-from diplomacy.engine.map import Map
 from diplomacy.utils.export import to_saved_game_format
 
 # the standard diplomacy powers 
@@ -14,6 +13,12 @@ class GameManager:
         self.games = {} 
         
     def create_game(self, game_id: str, rules: dict = None):
+        """
+        Creates a new game with 7 dummies for all powers.
+        Generic rules. 
+        Saves game to db. 
+        TODO: Return values. 
+        """
         if game_id in self.games: 
             raise ValueError(f"Game with ID '{game_id}' already exists.")
         
@@ -34,11 +39,16 @@ class GameManager:
             "submitted_orders": {}
         }
         self._save_game_to_db(game_id) # stub
-        # TODO change game status
             
     def register_player(self, game_id: str, player_id: str, power: str = None): 
+        """
+        Registers a new player, with ID and power. 
+        Sets power to be controlled by player. 
+        TODO: Figure out how to remove dummy. 
+        TODO: Return values
+        """
         data = self._get_game_data(game_id)
-        game = data["game"]
+        game = self._get_game_object(game_id)
         players = data["players"]
             
         if player_id in players:
@@ -67,8 +77,13 @@ class GameManager:
         self._save_game_to_db(game_id) #stub
             
     def start_game(self, game_id: str):
+        """
+        Starts the game (set status to active).
+        Saves the game to db.
+        TODO: Return values
+        """
         data = self._get_game_data(game_id)
-        game = data["game"]
+        game = self._get_game_object(game_id)
         players = data["players"]
             
         if len(players) < 2:
@@ -77,13 +92,21 @@ class GameManager:
         if len(players) < 7:
             print("Warning: Game started with fewer than 7 players.")
             
-        game.process() #advance to first phase
+        # game.process() #advance to first phase
+        # TODO change game status
+        game.set_status("active")
         self._save_game_to_db(game_id) #stub 
         
     def submit_orders(self, game_id: str, player_id: str, orders: list):
+        """
+        Submits orders for a specific power. 
+        Validates if moves are valid moves. 
+        TODO: Does not check if moves can be made by player, but engine ignores illegal moves. 
+        TODO: Return values and save game (?)
+        """
         # validate that the game exists, and get data 
         data = self._get_game_data(game_id)
-        game = data["game"]
+        game = self._get_game_object(game_id)
         players = data["players"]
         power = players[player_id]
         
@@ -109,8 +132,7 @@ class GameManager:
         """
         Returns a list of valid orders, validated against game.get_all_possible_orders()
         """
-        data = self._get_game_data(game_id)
-        game = data["game"]
+        game = self._get_game_object(game_id)
         valid_orders_dict = game.get_all_possible_orders()
         
         # flatten orders dict into a set 
@@ -125,11 +147,12 @@ class GameManager:
     def resolve_game_phase(self, game_id: str):
         """
         Resolves the current phase by processing all orders and updating the game state.
+        TODO: Return values
         """
         
         # get the game and current phase 
         data = self._get_game_data(game_id)
-        game = data["game"]
+        game = self._get_game_object(game_id)
         current_phase = game.get_current_phase()
         
         print(f"Resolving phase: {current_phase}")
@@ -173,24 +196,39 @@ class GameManager:
         print(f"Game '{game_id}' has ended.")
         # add additional logic here 
         self._save_game_to_db(game_id) # save final state of the game
-            
-    def get_game(self, game_id: str) -> Game:
-        return self._get_game_data(game_id)["game"]
     
     def get_game_state(self, game_id: str):
-        data = self._get_game_data(game_id)
-        game = data["game"]
+        game = self._get_game_object(game_id)
         
         return game.get_state()
     
     def render_game(self, game_id: str):
-        data = self._get_game_data(game_id)
-        game = data["game"]
-        
+        """
+        Renders the game with the built in engine render
+        Probably not good enough for prod, but nice for MVP
+        """
+        game = self._get_game_object(game_id)
         output_path = "/Users/matthewthompson/repos/diplomacy-backend/app/renders/render.svg"
+        
         game.render(incl_orders=True, incl_abbrev=False, output_format='svg', output_path=output_path)
         
+    def save_game(self, game_id: str):
+        """
+        Saves the game into the app/saves folder. 
+        TODO: Return values. 
+        """
+        game = self._get_game_object(game_id)
+        iso_timestamp = datetime.now(timezone.utc).isoformat()
+        file_name = "{game_id}-{iso_timestamp}"
+        output_path = "/Users/matthewthompson/repos/diplomacy-backend/app/saves/{file_name}.json"
+        
+        to_saved_game_format(game, output_path=output_path, output_mode='a')
+        print(f"Saved game to: {output_path}")
+        
     def _get_game_data(self, game_id: str):
+        """
+        Deprecated: moving to _get_game_object()
+        """
         if game_id not in self.games: 
             raise ValueError(f"Game '{game_id}' not found.")
         return self.games[game_id]
@@ -198,3 +236,16 @@ class GameManager:
     def _save_game_to_db(self, game_id: str):
         """ Placeholder for saving to DB. Will pickle and persist later. """
         print(f"Game '{game_id}' would be saved here.")
+        
+    def _get_game_object(self, game_id: str):
+        """
+        Gets the game object for the game with relevant game_id
+        """
+        if game_id not in self.games:
+            raise ValueError(f"Game '{game_id}' not found.")
+        data = self.games[game_id]
+        return data["game"]
+    
+    # Maybe replace above with this? 
+    # def get_game(self, game_id: str) -> Game:
+    #     return self._get_game_data(game_id)["game"]
