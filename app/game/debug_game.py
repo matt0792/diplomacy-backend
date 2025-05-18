@@ -2,7 +2,7 @@
 
 import pprint
 from diplomacy import Game
-from game_manager import GameManager
+from app.game.game_manager import GameManager
 
 game_id = "test_game"
 manager = GameManager()

@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from game_manager import GameManager  # Make sure this path is correct
+from app.game.game_manager import GameManager  # Make sure this path is correct
 
 class TestGameManager(unittest.TestCase):
     def setUp(self):
