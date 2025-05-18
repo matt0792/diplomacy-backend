@@ -20,11 +20,13 @@ def print_menu():
     print("7. Show supply centers")
     print("8. Show game info")
     print("9. Get all possible orders")
+    print("9.5. Get all possible orders for power")
     print("10. Get order status")
     print("11. Get power")
     print("12. Get game state")
     print("13. Render game")
     print("14. Save game")
+    print("15. Create dummy orders")
     print("============================") 
     
 while True:
@@ -99,6 +101,10 @@ while True:
         game = data["game"]
         pp.pprint(game.get_all_possible_orders())
         
+    elif choice == "9.5":
+        power = input("Enter power: ").strip()
+        print(f"All possible orders for {power}: {manager._get_power_orders(game_id, power)}")
+        
     elif choice == "10":
         data = manager._get_game_data(game_id)
         game = data["game"]
@@ -117,12 +123,18 @@ while True:
         pp.pprint(manager.get_game_state(game_id))
         
     elif choice == "13":
-        manager.render_game(game_id)
-        print("Game rendered to 'app/renders'")
+        print(manager.render_game(game_id))
+        print("Game rendered")
         
     elif choice == "14":
         manager.save_game(game_id)
         print("Game saved")
+        
+    elif choice == "15":
+        manager._create_bot_orders(game_id)
+        print("Creating bot orders")
+        
+        
         
     
     else:
