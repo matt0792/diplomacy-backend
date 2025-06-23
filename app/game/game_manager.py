@@ -12,7 +12,31 @@ class GameManager:
     def __init__(self):
         self.games = {} 
         
-    def create_game(self, game_id: str, rules: dict = None):
+    def get_all_games(self):
+        game_list = []
+        for game_id, game_data in self.games.items():
+            game_list.append({
+                "game_id": game_id,
+                "players": game_data["players"],
+                "game_name": game_data["game_name"],
+                "creator_id": game_data["creator_id"]
+            })
+        return game_list
+    
+    def get_game(self, game_id: str):
+        if game_id in self.games:
+            game_data = self.games[game_id]
+            return {
+                "game_id": game_id,
+                "players": game_data["players"],
+                "game_name": game_data["game_name"],
+                "creator_id": game_data["creator_id"]
+                
+            }
+        return None
+            
+        
+    def create_game(self, game_id: str, game_name: str, creator_id: str, rules: dict = None):
         """
         Creates a new game with 7 dummies for all powers.
         Generic rules. 
@@ -32,17 +56,19 @@ class GameManager:
             "NO_PRESS"
         ]
 
-        game = Game(game_id=game_id, rules=rules)
+        game = Game(game_id=game_id, rules=rules, creator_id=creator_id)
         self.games[game_id] = {
             "game": game,
             "players": {},
-            "submitted_orders": {}
+            "game_name": game_name,
+            "creator_id": creator_id
         }
         self._save_game_to_db(game_id) # stub
+        print(self.games)
         
         return {"success": True, "game_id": game_id, "rules": rules}
             
-    def register_player(self, game_id: str, player_id: str, power: str = None): 
+    def register_player(self, game_id: str, player_id: str, player_name: str, power: str = None): 
         """
         Registers a new player, with ID and power. 
         Sets power to be controlled by player. 
@@ -59,7 +85,7 @@ class GameManager:
         if player_id in players:
             return {"success": False, "error": f"Player '{player_id}' already registered."}
             
-        assigned_powers = set(players.values())
+        assigned_powers = set(player["power"] for player in players.values())
         available_powers = [p for p in DIPLOMACY_POWERS if p not in assigned_powers]
             
         if not available_powers: 
@@ -71,7 +97,10 @@ class GameManager:
         elif power not in available_powers: 
             return {"success": False, "error": f"Power '{power}' is already taken or invalid."}
         
-        players[player_id] = power
+        players[player_id] = {
+            "power": power,
+            "name": player_name,
+        }
         
         # get the power object
         power_object = game.get_power(power)
@@ -81,7 +110,7 @@ class GameManager:
         
         self._save_game_to_db(game_id) #stub
         
-        return {"success": True, "player_id": player_id, "power": power}
+        return {"success": True, "player_id": player_id, "player_name": player_name, "power": power}
             
     def start_game(self, game_id: str):
         """
@@ -94,14 +123,14 @@ class GameManager:
         except ValueError as e:
             return {"success": False, "error": str(e)}
         
-        if len(data["players"]) < 2:
-            return {"success": False, "error": "At least 2 players are required to start a game."}
+        # if len(data["players"]) < 2:
+        #     return {"success": False, "error": "At least 2 players are required to start a game."}
            
         # game.process() #advance to first phase
         game.set_status("active")
         self._save_game_to_db(game_id) #stub 
         
-        return {"success": True, "status": "active", "players": data["players"]}
+        return {"success": True, "status": "active", "message": "Game started successfully."}
         
     def submit_orders(self, game_id: str, player_id: str, orders: list):
         """
@@ -119,16 +148,18 @@ class GameManager:
         if player_id not in players:
             return {"success": False, "error": f"Player '{player_id}' is not registered."} 
            
-        power = players[player_id]
+        power = players[player_id]['power']
         # validate orders with helper func 
-        validated_orders = self.validate_orders(game_id=game_id, orders=orders, power=power)
+        # validated_orders = self.validate_orders(game_id=game_id, orders=orders, power=power)
         
-        if not validated_orders:
-            return {"success": False, "error": "No valid orders submitted."}
+        # if not validated_orders:
+        #     return {"success": False, "error": "No valid orders submitted."}
         
-        game.set_orders(power, validated_orders, expand=False, replace=True)
+        game.set_orders(power, orders, expand=False, replace=True)
         
-        return {"success": True, "power": power, "orders_submitted": validated_orders}
+        print(f"All submitted orders: {game.get_orders()}")
+        
+        return {"success": True, "power": power, "orders_submitted": orders}
         
     def validate_orders(self, game_id: str, orders, power):
         """
@@ -139,6 +170,14 @@ class GameManager:
         # check validity and return 
         valid_orders = [order for order in orders if order in valid_power_orders]
         return valid_orders
+    
+    def get_orders(self, game_id: str):
+        """
+        Returns all submitted orders for the current phase
+        """
+        game = self._get_game_object(game_id)
+        orders = game.get_orders()
+        return orders
         
     def resolve_game_phase(self, game_id: str):
         """
@@ -156,29 +195,28 @@ class GameManager:
         
         current_phase = game.get_current_phase()
         # ensure that the phase is resolvable (movement or retreat)
-        phase_type = current_phase[-1]
-        if phase_type not in ["M", "R"]:
-            return {"success": False, "error": f"Cannot resolve during '{current_phase}' phase"}
+        # phase_type = current_phase[-1]
+        # if phase_type not in ["M", "R"]:
+        #     return {"success": False, "error": f"Cannot resolve during '{current_phase}' phase"}
         
-        submitted_orders = data["submitted_orders"]
-        all_powers = game.get_map_power_names()  # all playable powers        
+        all_powers = game.get_map_power_names()  # all powers   
+        
+        self._create_bot_orders(game_id)     
 
+        # For unsubmitted powers, fill in HOLD orders
         for power in all_powers:
-            if power in submitted_orders:
-                orders = submitted_orders[power]
-            else:
-                # Generate hold orders for each unit of this power
+            if not game.get_orders(power):
                 units = game.get_units(power)
-                orders = [f"{unit} H" for unit in units]
-                print(f"[AUTO] Submitting HOLD orders for power '{power}': {orders}")
+                hold_orders = [f"{unit} H" for unit in units]
+                print(f"[AUTO] Submitting HOLD orders for power '{power}': {hold_orders}")
+                game.set_orders(power, hold_orders)
         
-            game.set_orders(power, orders)  
         
         # process the orders for the current phase
         game.process()
         
-        # Clear submitted orders after processing
-        data["submitted_orders"].clear()
+        # Clear submitted orders after processing (BROKEN)
+        # data["submitted_orders"].clear()
         
         self._save_game_to_db(game_id) # stub 
         
@@ -226,13 +264,7 @@ class GameManager:
         Saves the game into the app/saves folder. 
         TODO: Return values. 
         """
-        game = self._get_game_object(game_id)
-        iso_timestamp = datetime.now(timezone.utc).isoformat()
-        file_name = "{game_id}-{iso_timestamp}"
-        output_path = "/Users/matthewthompson/repos/diplomacy-backend/app/saves/{file_name}.json"
-        
-        to_saved_game_format(game, output_path=output_path, output_mode='a')
-        print(f"Saved game to: {output_path}")
+        # STUB
         
     def _get_power_orders(self, game_id: str, power):
         """
@@ -254,8 +286,16 @@ class GameManager:
         matching_orders = [order for order in valid_order_set if any(unit in order for unit in power_units)]
         
         return matching_orders
+    
+    def get_power_units(self, game_id: str, power):
+        """
+        Gets all units belonging to a power
         
-        
+        Returns: list of units
+        """
+        game = self._get_game_object(game_id)
+        power_units = game.get_units(power)
+        return power_units
     
     def _remove_character(text, char):
         """
@@ -297,7 +337,7 @@ class GameManager:
         Returns a list of powers that do not have an assigned player
         """
         data = self._get_game_data(game_id)
-        assigned_powers = set(data["players"].values())
+        assigned_powers = set(player["power"] for player in data["players"].values())
         return [power for power in DIPLOMACY_POWERS if power not in assigned_powers]
     
     def _create_bot_orders(self, game_id: str):
@@ -310,6 +350,10 @@ class GameManager:
         game = self._get_game_object(game_id)
         for power in dummy_powers:
             possible_orders = self._get_power_orders(game_id, power)
+            if not possible_orders:
+                print(f"No valid orders for {power}")
+                continue
+            
             chosen_order = random.choice(possible_orders)
             print(f"Chosen random order {chosen_order} for dummy power: {power}")
             

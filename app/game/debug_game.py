@@ -2,7 +2,7 @@
 
 import pprint
 from diplomacy import Game
-from app.game.game_manager import GameManager
+from game_manager import GameManager
 
 game_id = "test_game"
 manager = GameManager()
@@ -134,8 +134,8 @@ while True:
         manager._create_bot_orders(game_id)
         print("Creating bot orders")
         
+    elif choice == "16":
+        print(manager.get_all_games())
         
-        
-    
     else:
         print("Invalid choice.")

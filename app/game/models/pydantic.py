@@ -1,31 +1,37 @@
 # Pydantic models for req / res 
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import List, Optional, Dict
 
 # === Request Models === 
 
 class CreateGameRequest(BaseModel):
-    game_id: str
     rules: Optional[List[str]] = None
+    game_name: str
+    creator_id: str
     
 class RegisterPlayerRequest(BaseModel):
     game_id: str
     player_id: str
+    player_name: str
     power: Optional[str] = None
     
 class SubmitOrdersRequest(BaseModel):
-    game_id: str
     player_id: str
     orders: List[str]
     
-class ResolvePhaseRequest(BaseModel):
+class GetOrdersRequest(BaseModel):
     game_id: str
+    
+class GetValidOrdersRequest(BaseModel):
+    game_id: str
+    power: str
     
 # === Response Models === 
 
 class SuccessResponse(BaseModel): 
-    message: str
+    message: Optional[str]
+    data: Optional[Dict] = None
     
 class GameStateResponse(BaseModel):
     game_id: str
@@ -34,3 +40,19 @@ class GameStateResponse(BaseModel):
 class GameRender(BaseModel):
     game_id: str
     svg: str
+    
+class CreateGameResponse(BaseModel):
+    message: str
+    game_id: str
+    game_name: str
+    creator_id: str
+    
+class PlayerInfo(BaseModel):
+    power: str
+    name: str
+    
+class GameSummaryResponse(BaseModel):
+    game_id: str
+    players: Dict[str, PlayerInfo]
+    game_name: str
+    creator_id: str
