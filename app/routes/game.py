@@ -1,3 +1,5 @@
+# These are the actual endpoints that the frontend hits for game logic, auth is separate
+
 from typing import List
 from fastapi import APIRouter, HTTPException, Query, Path
 from app.game.models.pydantic import (
@@ -103,6 +105,22 @@ def get_power_units(game_id: str, power: str = Query(...)):
             message=f"Units for power: {power}",
             data={"power_units": power_units}
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/{game_id}/build-orders")
+def get_build_orders(game_id: str, power: str = Query(...)):
+    try: 
+        build_orders = manager.get_build_orders(game_id, power)
+        return build_orders
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/{game_id}/phase-type")
+def get_phase_type(game_id: str):
+    try: 
+        phase_type = manager.get_phase_type(game_id)
+        return phase_type
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     

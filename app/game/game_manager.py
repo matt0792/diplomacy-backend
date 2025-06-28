@@ -201,7 +201,7 @@ class GameManager:
         
         all_powers = game.get_map_power_names()  # all powers   
         
-        self._create_bot_orders(game_id)     
+        # self._create_bot_orders(game_id)     
 
         # For unsubmitted powers, fill in HOLD orders
         for power in all_powers:
@@ -232,6 +232,13 @@ class GameManager:
             "status": status,
             "next_phase": game.get_current_phase()
         }
+            
+    def get_phase_type(self, game_id: str):
+        """
+        returns the phase type 
+        """
+        game = self._get_game_object(game_id)
+        return game.phase_type
             
     def _handle_game_end(self, game_id: str):
         """
@@ -296,6 +303,16 @@ class GameManager:
         game = self._get_game_object(game_id)
         power_units = game.get_units(power)
         return power_units
+    
+    def get_build_orders(self, game_id: str, power):
+        """
+        Gets possible build orders for a power 
+        """
+        game = self._get_game_object(game_id)
+        power_obj = game.get_power(power)
+        
+        print(power_obj.adjust)
+        
     
     def _remove_character(text, char):
         """

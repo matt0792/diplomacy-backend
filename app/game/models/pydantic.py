@@ -27,6 +27,9 @@ class GetValidOrdersRequest(BaseModel):
     game_id: str
     power: str
     
+class GenericRequest(BaseModel):
+    game_id: str
+    
 # === Response Models === 
 
 class SuccessResponse(BaseModel): 
